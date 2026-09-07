@@ -1,0 +1,87 @@
+name: Контроллер E2E
+
+on:
+  schedule:
+    - cron: '17 2 * * *'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Ветка, тег или коммит action для тестирования
+        required: true
+        default: main
+        type: string
+  repository_dispatch:
+    types: [test-command]
+
+concurrency:
+  group: depos-action-e2e
+  cancel-in-progress: false
+
+env:
+  GH_REPO: ${{ github.repository }}
+  BASE_BRANCH: e2e/base-${{ github.run_id }}-${{ github.run_attempt }}
+  PR_BRANCH: depos/e2e-${{ github.run_id }}-${{ github.run_attempt }}
+  KEEP_BRANCH: e2e/keep-${{ github.run_id }}-${{ github.run_attempt }}
+
+jobs:
+  lifecycle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      actions: write
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ACTION_REF: ${{ github.event_name == 'repository_dispatch' && format('refs/pull/{0}/head', github.event.client_payload.github.payload.issue.number) || inputs.ref || 'main' }}
+
+    steps:
+      - name: Получение тестового репозитория
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Получение тестируемой action
+        uses: actions/checkout@v6.0.1
+        with:
+          repository: Stivo182/depos-action
+          ref: ${{ env.ACTION_REF }}
+          path: depos-action-source
+          persist-credentials: false
+
+      - name: Проверка скриптов тестового репозитория
+        shell: bash
+        run: shellcheck scripts/*.sh tests/*.sh
+
+      - name: Проверка workflow
+        uses: docker://rhysd/actionlint:1.7.12
+        with:
+          args: -color
+
+      - name: Запуск контрактных тестов
+        shell: bash
+        run: bash tests/test-workflows.sh
+
+      - name: Запуск жизненного цикла E2E
+        shell: bash
+        run: bash scripts/lifecycle.sh
+
+  cleanup:
+    name: Очистка тестовых ресурсов
+    needs: lifecycle
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: write
+      contents: write
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: Получение тестового репозитория
+        uses: actions/checkout@v6.0.1
+
+      - name: Очистка временных Pull Request и веток
+        shell: bash
+        run: bash scripts/cleanup.sh

@@ -1,0 +1,95 @@
+name: Исполнитель E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Фаза жизненного цикла
+        required: true
+        type: choice
+        options:
+          - create
+          - cleanup
+          - safety
+      pr_branch:
+        description: Ветка Pull Request для depos-action
+        required: true
+        type: string
+      action_ref:
+        description: Ветка, тег или коммит с тестируемой action
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  exercise-action:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      PR_BRANCH: ${{ inputs.pr_branch }}
+      MANAGED_MARKER: '<!-- depos-action: managed pull request -->'
+
+    steps:
+      - name: Получение тестового репозитория
+        uses: actions/checkout@v6.0.1
+
+      - name: Получение тестируемой action
+        uses: actions/checkout@v6.0.1
+        with:
+          repository: Stivo182/depos-action
+          ref: ${{ inputs.action_ref }}
+          path: depos-action-local
+          persist-credentials: false
+
+      - name: Сохранение SHA пользовательской ветки
+        if: inputs.phase == 'safety'
+        id: custom-branch
+        shell: bash
+        run: |
+          sha=$(gh api "repos/${GH_REPO}/git/ref/heads/${PR_BRANCH}" --jq '.object.sha')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+
+      - name: Запуск depos-action
+        uses: ./depos-action-local
+        with:
+          base: ${{ github.ref_name }}
+          branch: ${{ inputs.pr_branch }}
+          token: ${{ github.token }}
+
+      - name: Проверка созданного Pull Request
+        if: inputs.phase == 'create'
+        id: created-pr
+        shell: bash
+        run: bash scripts/verify.sh created
+
+      - name: Повторный запуск depos-action
+        if: inputs.phase == 'create'
+        uses: ./depos-action-local
+        with:
+          base: ${{ github.ref_name }}
+          branch: ${{ inputs.pr_branch }}
+          token: ${{ github.token }}
+
+      - name: Проверка повторного использования Pull Request
+        if: inputs.phase == 'create'
+        shell: bash
+        env:
+          EXPECTED_NUMBER: ${{ steps.created-pr.outputs.number }}
+        run: bash scripts/verify.sh reused
+
+      - name: Проверка закрытия управляемого Pull Request
+        if: inputs.phase == 'cleanup'
+        shell: bash
+        run: bash scripts/verify.sh cleanup
+
+      - name: Проверка сохранности пользовательской ветки
+        if: inputs.phase == 'safety'
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ steps.custom-branch.outputs.sha }}
+        run: bash scripts/verify.sh safety
