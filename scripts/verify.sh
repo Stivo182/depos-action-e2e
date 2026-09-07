@@ -14,7 +14,7 @@ case "$phase" in
       --head "$PR_BRANCH" \
       --base "$GITHUB_REF_NAME" \
       --state open \
-      --json number,body,files)
+      --json number,body,files,labels)
 
     count=$(jq 'length' <<< "$pr_json")
     [[ "$count" == "1" ]] || {
@@ -26,6 +26,9 @@ case "$phase" in
       '.[0].body | contains($marker)' <<< "$pr_json" >/dev/null
     jq -e \
       '.[0].files | length == 1 and .[0].path == "packagedef"' \
+      <<< "$pr_json" >/dev/null
+    jq -e \
+      '.[0].labels | any(.name == "dependencies")' \
       <<< "$pr_json" >/dev/null
 
     echo "number=$(jq -r '.[0].number' <<< "$pr_json")" >> "$GITHUB_OUTPUT"

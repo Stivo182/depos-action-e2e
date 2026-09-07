@@ -62,6 +62,7 @@ if [[ "$(grep -Fc -- '--workflow worker.yml' "$root_dir/scripts/lifecycle.sh")" 
 fi
 grep -F 'matching-refs/heads/' "$root_dir/scripts/cleanup.sh" >/dev/null
 grep -F 'matching-refs/heads/' "$root_dir/scripts/verify.sh" >/dev/null
+grep -F 'any(.name == "dependencies")' "$root_dir/scripts/verify.sh" >/dev/null
 
 for variable in GH_REPO BASE_BRANCH PR_BRANCH KEEP_BRANCH; do
   if [[ "$(grep -Ec "^[[:space:]]+${variable}:" "$controller")" -ne 1 ]]; then
