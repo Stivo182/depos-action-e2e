@@ -86,6 +86,17 @@ export PR_BRANCH='depos/test'
 export KEEP_BRANCH='e2e/keep'
 export BASE_BRANCH='e2e/missing'
 export GITHUB_RUN_ID=123
+expected_error_log="$case_dir/expected-error.log"
+
+assert_reported_error() {
+  local expected_message="$1"
+
+  if ! grep -Fx "::error title=Ошибка очистки E2E::${expected_message}" "$expected_error_log" >/dev/null; then
+    echo "Не найдена ожидаемая ошибка очистки: ${expected_message}" >&2
+    sed 's/^/  /' "$expected_error_log" >&2
+    exit 1
+  fi
+}
 
 GH_ACTIVE_RUN=true bash "$root_dir/scripts/cleanup.sh"
 grep -F 'run cancel 77' "$GH_CALL_LOG" >/dev/null
@@ -103,32 +114,50 @@ fi
 
 assert_worker_failure_is_closed() {
   local failure_variable="$1"
+  local expected_message="$2"
 
   : > "$GH_CALL_LOG"
+  : > "$expected_error_log"
   rm -f -- "$GH_CANCELLED_FILE"
-  if env GH_ACTIVE_RUN=true "$failure_variable=true" bash "$root_dir/scripts/cleanup.sh"; then
+  if env GH_ACTIVE_RUN=true "$failure_variable=true" \
+      bash "$root_dir/scripts/cleanup.sh" >"$expected_error_log" 2>&1; then
     echo "Ошибка worker ${failure_variable} не остановила очистку" >&2
     exit 1
   fi
+  assert_reported_error "$expected_message"
   if grep -Eq 'pr close|api -X DELETE' "$GH_CALL_LOG"; then
     echo "После ошибки worker ${failure_variable} началось удаление ресурсов" >&2
     exit 1
   fi
 }
 
-assert_worker_failure_is_closed GH_RUN_LIST_FAIL
-assert_worker_failure_is_closed GH_RUN_VIEW_FAIL
-assert_worker_failure_is_closed GH_RUN_CANCEL_FAIL
-assert_worker_failure_is_closed GH_NEVER_COMPLETE
+assert_worker_failure_is_closed \
+  GH_RUN_LIST_FAIL \
+  'Не удалось получить активные worker для очистки.'
+assert_worker_failure_is_closed \
+  GH_RUN_VIEW_FAIL \
+  'Не удалось получить состояние worker 77.'
+assert_worker_failure_is_closed \
+  GH_RUN_CANCEL_FAIL \
+  'Не удалось отменить worker 77.'
+assert_worker_failure_is_closed \
+  GH_NEVER_COMPLETE \
+  'Worker 77 не завершился после отмены.'
 
-if GH_CLOSE_FAIL=true bash "$root_dir/scripts/cleanup.sh"; then
+: > "$expected_error_log"
+if GH_CLOSE_FAIL=true bash "$root_dir/scripts/cleanup.sh" >"$expected_error_log" 2>&1; then
   echo 'Ошибка закрытия PR была скрыта' >&2
   exit 1
 fi
+assert_reported_error 'Не удалось закрыть Pull Request 42.'
 
-if GH_REF_LIST_FAIL=true bash "$root_dir/scripts/cleanup.sh"; then
+: > "$expected_error_log"
+if GH_REF_LIST_FAIL=true bash "$root_dir/scripts/cleanup.sh" >"$expected_error_log" 2>&1; then
   echo 'Ошибка получения веток была принята за их отсутствие' >&2
   exit 1
 fi
+assert_reported_error 'Не удалось проверить существование ветки depos/test.'
+assert_reported_error 'Не удалось проверить существование ветки e2e/keep.'
+assert_reported_error 'Не удалось проверить существование ветки e2e/missing.'
 
 echo 'ПРОЙДЕНО: очистка ресурсов E2E'

@@ -81,7 +81,16 @@ bash -n \
   "$root_dir/scripts/cleanup.sh" \
   "$root_dir/scripts/verify.sh"
 
-bash "$root_dir/tests/test-cleanup.sh"
+if ! cleanup_test_output=$(bash "$root_dir/tests/test-cleanup.sh" 2>&1); then
+  printf '%s\n' "$cleanup_test_output" >&2
+  exit 1
+fi
+if grep -F '::error' <<< "$cleanup_test_output" >/dev/null; then
+  echo 'Ожидаемые ошибки очистки попали в вывод успешного теста' >&2
+  printf '%s\n' "$cleanup_test_output" >&2
+  exit 1
+fi
+printf '%s\n' "$cleanup_test_output"
 bash "$root_dir/tests/test-lifecycle.sh"
 
 echo "ПРОЙДЕНО: контракт E2E с фиксированным репозиторием"
