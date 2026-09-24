@@ -1,0 +1,43 @@
+name: Демонстрационный Pull Request
+
+on:
+  workflow_dispatch:
+    inputs:
+      action_ref:
+        description: Ветка, тег или коммит depos-action
+        required: true
+        default: main
+        type: string
+
+concurrency:
+  group: depos-action-readme-pr
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  create-pr:
+    name: Создание Pull Request
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Получение тестового репозитория
+        uses: actions/checkout@v6.0.1
+
+      - name: Получение depos-action
+        uses: actions/checkout@v6.0.1
+        with:
+          repository: Stivo182/depos-action
+          ref: ${{ inputs.action_ref }}
+          path: depos-action-local
+          persist-credentials: false
+
+      - name: Обновление демонстрационного packagedef
+        uses: ./depos-action-local
+        with:
+          packagedef: fixtures/readme/packagedef
+          target: latest
+          token: ${{ github.token }}
