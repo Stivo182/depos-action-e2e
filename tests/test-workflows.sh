@@ -63,6 +63,14 @@ fi
 grep -F 'matching-refs/heads/' "$root_dir/scripts/cleanup.sh" >/dev/null
 grep -F 'matching-refs/heads/' "$root_dir/scripts/verify.sh" >/dev/null
 grep -F 'any(.name == "dependencies")' "$root_dir/scripts/verify.sh" >/dev/null
+grep -F '| Dependency | Update | Type | Links |' "$root_dir/scripts/verify.sh" >/dev/null
+grep -F 'hub.oscript.io/package/' "$root_dir/scripts/verify.sh" >/dev/null
+grep -F 'split("<details>")' "$root_dir/scripts/verify.sh" >/dev/null
+grep -F 'split("</details>")' "$root_dir/scripts/verify.sh" >/dev/null
+if grep -F 'and contains("<summary>📋 Release notes</summary>")' "$root_dir/scripts/verify.sh" >/dev/null; then
+  echo 'E2E не допускает штатную деградацию без release notes' >&2
+  exit 1
+fi
 
 for variable in GH_REPO BASE_BRANCH PR_BRANCH KEEP_BRANCH; do
   if [[ "$(grep -Ec "^[[:space:]]+${variable}:" "$controller")" -ne 1 ]]; then

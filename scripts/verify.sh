@@ -24,6 +24,12 @@ case "$phase" in
 
     jq -e --arg marker "$MANAGED_MARKER" \
       '.[0].body | contains($marker)' <<< "$pr_json" >/dev/null
+    jq -e '
+      .[0].body as $body
+      | ($body | contains("| Dependency | Update | Type | Links |"))
+        and ($body | contains("hub.oscript.io/package/"))
+        and (($body | split("<details>") | length) == ($body | split("</details>") | length))
+    ' <<< "$pr_json" >/dev/null
     jq -e \
       '.[0].files | length == 1 and .[0].path == "packagedef"' \
       <<< "$pr_json" >/dev/null
