@@ -34,6 +34,11 @@ grep -F 'bash scripts/verify.sh created' "$worker" >/dev/null
 grep -F 'bash scripts/verify.sh reused' "$worker" >/dev/null
 grep -F 'bash scripts/verify.sh cleanup' "$worker" >/dev/null
 grep -F 'bash scripts/verify.sh safety' "$worker" >/dev/null
+grep -F 'uses: ./depos-action-local/upgrade' "$worker" >/dev/null
+grep -F 'if: inputs.phase == '"'"'upgrade'"'"'' "$worker" >/dev/null
+grep -F 'test -s report.json' "$worker" >/dev/null
+grep -F 'jq -e . report.json' "$worker" >/dev/null
+grep -F 'git diff --quiet -- packagedef' "$worker" >/dev/null
 if grep -E 'wait_for_run\(\)|dispatch_worker\(\)' "$controller" >/dev/null; then
   echo 'Функции жизненного цикла всё ещё встроены в YAML workflow' >&2
   exit 1
@@ -56,6 +61,9 @@ if [[ "$(grep -Fc 'base: ${{ github.ref_name }}' "$worker")" -ne 2 ]]; then
   exit 1
 fi
 grep -F 'latest_run_id' "$root_dir/scripts/lifecycle.sh" >/dev/null
+# Переменная должна проверяться как буквальный текст в lifecycle.sh.
+# shellcheck disable=SC2016
+grep -F 'dispatch_worker upgrade "$PR_BRANCH"' "$root_dir/scripts/lifecycle.sh" >/dev/null
 if [[ "$(grep -Fc -- '--workflow worker.yml' "$root_dir/scripts/lifecycle.sh")" -ne 1 ]]; then
   echo 'Запрос последнего запуска worker продублирован в lifecycle.sh' >&2
   exit 1

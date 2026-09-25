@@ -66,6 +66,8 @@ main() {
   git switch -c "$BASE_BRANCH"
   git push origin "HEAD:refs/heads/$BASE_BRANCH"
 
+  dispatch_worker upgrade "$PR_BRANCH" >/dev/null
+
   dispatch_worker create "$PR_BRANCH" >/dev/null
 
   git fetch origin "$PR_BRANCH"
