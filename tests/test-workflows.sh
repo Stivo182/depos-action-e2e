@@ -64,7 +64,7 @@ grep -F 'matching-refs/heads/' "$root_dir/scripts/cleanup.sh" >/dev/null
 grep -F 'matching-refs/heads/' "$root_dir/scripts/verify.sh" >/dev/null
 grep -F 'any(.name == "dependencies")' "$root_dir/scripts/verify.sh" >/dev/null
 grep -F '| Dependency | Update | Type | Links |' "$root_dir/scripts/verify.sh" >/dev/null
-grep -F 'hub.oscript.io/package/' "$root_dir/scripts/verify.sh" >/dev/null
+grep -F 'hub.oscript.io/pools/default/packages/' "$root_dir/scripts/verify.sh" >/dev/null
 grep -F 'split("<details>")' "$root_dir/scripts/verify.sh" >/dev/null
 grep -F 'split("</details>")' "$root_dir/scripts/verify.sh" >/dev/null
 if grep -F 'and contains("<summary>📋 Release notes</summary>")' "$root_dir/scripts/verify.sh" >/dev/null; then
