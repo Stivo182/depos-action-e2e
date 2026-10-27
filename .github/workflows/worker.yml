@@ -59,6 +59,7 @@ jobs:
         with:
           base: ${{ github.ref_name }}
           branch: ${{ inputs.pr_branch }}
+          engine: 2.2.0
           token: ${{ github.token }}
 
       - name: Проверка созданного Pull Request
@@ -73,6 +74,7 @@ jobs:
         with:
           base: ${{ github.ref_name }}
           branch: ${{ inputs.pr_branch }}
+          engine: 2.2.0
           token: ${{ github.token }}
 
       - name: Проверка повторного использования Pull Request

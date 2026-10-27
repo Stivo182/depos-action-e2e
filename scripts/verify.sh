@@ -27,6 +27,7 @@ case "$phase" in
     jq -e '
       .[0].body as $body
       | ($body | contains("| Dependency | Update | Type | Links |"))
+        and ($body | contains("OneScript: `2.2.0`"))
         and ($body | contains("hub.oscript.io/pools/default/packages/"))
         and (($body | split("<details>") | length) == ($body | split("</details>") | length))
     ' <<< "$pr_json" >/dev/null
