@@ -2,6 +2,7 @@
 set -uo pipefail
 
 : "${PR_BRANCH:?Переменная PR_BRANCH обязательна}"
+: "${ORPHAN_BRANCH:?Переменная ORPHAN_BRANCH обязательна}"
 : "${KEEP_BRANCH:?Переменная KEEP_BRANCH обязательна}"
 : "${BASE_BRANCH:?Переменная BASE_BRANCH обязательна}"
 : "${GH_REPO:?Переменная GH_REPO обязательна}"
@@ -91,22 +92,25 @@ if ! cancel_active_workers; then
   exit 1
 fi
 
-if ! pr_numbers=$(gh pr list \
-    --head "$PR_BRANCH" \
-    --state open \
-    --json number \
-    --jq '.[].number'); then
-  report_error "Не удалось получить список временных Pull Request."
-  pr_numbers=""
-fi
-
-for pr_number in $pr_numbers; do
-  if ! gh pr close "$pr_number" --comment "Очистка E2E после запуска ${GITHUB_RUN_ID}."; then
-    report_error "Не удалось закрыть Pull Request ${pr_number}."
+for branch in "$PR_BRANCH" "$ORPHAN_BRANCH"; do
+  if ! pr_numbers=$(gh pr list \
+      --head "$branch" \
+      --state open \
+      --json number \
+      --jq '.[].number'); then
+    report_error "Не удалось получить список временных Pull Request."
+    continue
   fi
+
+  for pr_number in $pr_numbers; do
+    if ! gh pr close "$pr_number" --comment "Очистка E2E после запуска ${GITHUB_RUN_ID}."; then
+      report_error "Не удалось закрыть Pull Request ${pr_number}."
+    fi
+  done
 done
 
 delete_branch "$PR_BRANCH"
+delete_branch "$ORPHAN_BRANCH"
 delete_branch "$KEEP_BRANCH"
 delete_branch "$BASE_BRANCH"
 

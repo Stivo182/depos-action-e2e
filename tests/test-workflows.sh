@@ -11,6 +11,7 @@ grep -F 'name: Исполнитель E2E' "$worker" >/dev/null
 # shellcheck disable=SC2016
 grep -F 'Workflow `Контроллер E2E`' "$root_dir/README.md" >/dev/null
 grep -F 'повторное использование существующего PR' "$root_dir/README.md" >/dev/null
+grep -F 'повторное использование автоматической ветки без Pull Request' "$root_dir/README.md" >/dev/null
 if grep -E '^\s*-?\s*name: (Checkout|Check|Run|Cleanup|Verify|Remember)' "$controller" "$worker" >/dev/null; then
   echo 'В pipeline остались английские названия этапов' >&2
   exit 1
@@ -20,7 +21,7 @@ grep -F 'repository_dispatch:' "$controller" >/dev/null
 grep -F 'types: [test-command]' "$controller" >/dev/null
 grep -F 'ACTION_REF:' "$controller" >/dev/null
 grep -F "format('refs/pull/{0}/head', github.event.client_payload.github.payload.issue.number)" "$controller" >/dev/null
-grep -F 'timeout-minutes: 60' "$controller" >/dev/null
+grep -F 'timeout-minutes: 90' "$controller" >/dev/null
 grep -F 'timeout-minutes: 15' "$worker" >/dev/null
 grep -F 'github.run_attempt' "$controller" >/dev/null
 grep -F 'bash scripts/lifecycle.sh' "$controller" >/dev/null
@@ -34,6 +35,10 @@ grep -F 'bash scripts/verify.sh created' "$worker" >/dev/null
 grep -F 'bash scripts/verify.sh reused' "$worker" >/dev/null
 grep -F 'bash scripts/verify.sh cleanup' "$worker" >/dev/null
 grep -F 'bash scripts/verify.sh safety' "$worker" >/dev/null
+grep -F -- '- orphan' "$worker" >/dev/null
+# Переменная shell проверяется как буквальный текст.
+# shellcheck disable=SC2016
+grep -F 'dispatch_worker orphan "$ORPHAN_BRANCH"' "$root_dir/scripts/lifecycle.sh" >/dev/null
 if grep -E 'wait_for_run\(\)|dispatch_worker\(\)' "$controller" >/dev/null; then
   echo 'Функции жизненного цикла всё ещё встроены в YAML workflow' >&2
   exit 1
@@ -51,8 +56,14 @@ grep -F 'path: depos-action-local' "$worker" >/dev/null
 grep -F 'uses: ./depos-action-local' "$worker" >/dev/null
 # Выражение GitHub Actions проверяется как буквальный текст.
 # shellcheck disable=SC2016
-if [[ "$(grep -Fc 'base: ${{ github.ref_name }}' "$worker")" -ne 2 ]]; then
+if [[ "$(grep -Fc 'base: ${{ github.ref_name }}' "$worker")" -ne 3 ]]; then
   echo 'Не все запуски depos-action получили временную базовую ветку' >&2
+  exit 1
+fi
+# Выражение GitHub Actions проверяется как буквальный текст.
+# shellcheck disable=SC2016
+if [[ "$(grep -Fc 'branch: ${{ inputs.pr_branch }}' "$worker")" -ne 2 ]]; then
+  echo 'Осиротевшая автоматическая ветка тестируется как пользовательская' >&2
   exit 1
 fi
 grep -F 'latest_run_id' "$root_dir/scripts/lifecycle.sh" >/dev/null
@@ -72,7 +83,7 @@ if grep -F 'and contains("<summary>📋 Release notes</summary>")' "$root_dir/sc
   exit 1
 fi
 
-for variable in GH_REPO BASE_BRANCH PR_BRANCH KEEP_BRANCH; do
+for variable in GH_REPO BASE_BRANCH PR_BRANCH ORPHAN_BRANCH KEEP_BRANCH; do
   if [[ "$(grep -Ec "^[[:space:]]+${variable}:" "$controller")" -ne 1 ]]; then
     echo "Общая переменная ${variable} продублирована между jobs" >&2
     exit 1

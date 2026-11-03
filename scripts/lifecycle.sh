@@ -54,6 +54,7 @@ main() {
   : "${GH_REPO:?Переменная GH_REPO обязательна}"
   : "${BASE_BRANCH:?Переменная BASE_BRANCH обязательна}"
   : "${PR_BRANCH:?Переменная PR_BRANCH обязательна}"
+  : "${ORPHAN_BRANCH:?Переменная ORPHAN_BRANCH обязательна}"
   : "${KEEP_BRANCH:?Переменная KEEP_BRANCH обязательна}"
   : "${ACTION_REF:?Переменная ACTION_REF обязательна}"
 
@@ -67,6 +68,7 @@ main() {
   git push origin "HEAD:refs/heads/$BASE_BRANCH"
 
   dispatch_worker create "$PR_BRANCH" >/dev/null
+  dispatch_worker orphan "$ORPHAN_BRANCH" >/dev/null
 
   git fetch origin "$PR_BRANCH"
   git show FETCH_HEAD:packagedef > packagedef

@@ -83,6 +83,7 @@ export GH_CALL_LOG="$case_dir/gh.log"
 export GH_CANCELLED_FILE="$case_dir/cancelled"
 export GH_REPO='Stivo182/depos-action-e2e'
 export PR_BRANCH='depos/test'
+export ORPHAN_BRANCH='depos/bump-deps/latest/e2e/test-base'
 export KEEP_BRANCH='e2e/keep'
 export BASE_BRANCH='e2e/missing'
 export GITHUB_RUN_ID=123
@@ -102,7 +103,9 @@ GH_ACTIVE_RUN=true bash "$root_dir/scripts/cleanup.sh"
 grep -F 'run cancel 77' "$GH_CALL_LOG" >/dev/null
 grep -F 'pr close 42' "$GH_CALL_LOG" >/dev/null
 grep -F 'matching-refs/heads/depos/test' "$GH_CALL_LOG" >/dev/null
+grep -F 'matching-refs/heads/depos/bump-deps/latest/e2e/test-base' "$GH_CALL_LOG" >/dev/null
 grep -F 'git/refs/heads/depos/test' "$GH_CALL_LOG" >/dev/null
+grep -F 'git/refs/heads/depos/bump-deps/latest/e2e/test-base' "$GH_CALL_LOG" >/dev/null
 grep -F 'git/refs/heads/e2e/keep' "$GH_CALL_LOG" >/dev/null
 
 cancel_line=$(grep -nF 'run cancel 77' "$GH_CALL_LOG" | cut -d: -f1)
@@ -157,6 +160,7 @@ if GH_REF_LIST_FAIL=true bash "$root_dir/scripts/cleanup.sh" >"$expected_error_l
   exit 1
 fi
 assert_reported_error 'Не удалось проверить существование ветки depos/test.'
+assert_reported_error 'Не удалось проверить существование ветки depos/bump-deps/latest/e2e/test-base.'
 assert_reported_error 'Не удалось проверить существование ветки e2e/keep.'
 assert_reported_error 'Не удалось проверить существование ветки e2e/missing.'
 

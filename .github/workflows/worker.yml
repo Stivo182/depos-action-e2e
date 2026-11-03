@@ -9,6 +9,7 @@ on:
         type: choice
         options:
           - create
+          - orphan
           - cleanup
           - safety
       pr_branch:
@@ -54,7 +55,13 @@ jobs:
           sha=$(gh api "repos/${GH_REPO}/git/ref/heads/${PR_BRANCH}" --jq '.object.sha')
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
+      - name: Создание осиротевшей автоматической ветки
+        if: inputs.phase == 'orphan'
+        shell: bash
+        run: git push origin "HEAD:refs/heads/${PR_BRANCH}"
+
       - name: Запуск depos-action
+        if: inputs.phase != 'orphan'
         uses: ./depos-action-local
         with:
           base: ${{ github.ref_name }}
@@ -62,8 +69,16 @@ jobs:
           engine: 2.2.0
           token: ${{ github.token }}
 
+      - name: Запуск depos-action для автоматической ветки
+        if: inputs.phase == 'orphan'
+        uses: ./depos-action-local
+        with:
+          base: ${{ github.ref_name }}
+          engine: 2.2.0
+          token: ${{ github.token }}
+
       - name: Проверка созданного Pull Request
-        if: inputs.phase == 'create'
+        if: inputs.phase == 'create' || inputs.phase == 'orphan'
         id: created-pr
         shell: bash
         run: bash scripts/verify.sh created
