@@ -24,6 +24,10 @@ grep -F "format('refs/pull/{0}/head', github.event.client_payload.github.payload
 grep -F 'timeout-minutes: 90' "$controller" >/dev/null
 grep -F 'timeout-minutes: 15' "$worker" >/dev/null
 grep -F 'github.run_attempt' "$controller" >/dev/null
+# Выражение GitHub Actions проверяется как буквальный текст.
+# shellcheck disable=SC2016
+grep -F 'ORPHAN_BRANCH: depos/bump-deps/base/e2e/base-${{ github.run_id }}-${{ github.run_attempt }}/latest' \
+  "$controller" >/dev/null
 grep -F 'bash scripts/lifecycle.sh' "$controller" >/dev/null
 grep -F 'bash scripts/cleanup.sh' "$controller" >/dev/null
 grep -F 'needs: lifecycle' "$controller" >/dev/null
@@ -64,6 +68,10 @@ fi
 # shellcheck disable=SC2016
 if [[ "$(grep -Fc 'branch: ${{ inputs.pr_branch }}' "$worker")" -ne 2 ]]; then
   echo 'Осиротевшая автоматическая ветка тестируется как пользовательская' >&2
+  exit 1
+fi
+if grep -F 'target: minor' "$worker" >/dev/null; then
+  echo 'Осиротевшая ветка должна проверять target latest по умолчанию' >&2
   exit 1
 fi
 grep -F 'latest_run_id' "$root_dir/scripts/lifecycle.sh" >/dev/null

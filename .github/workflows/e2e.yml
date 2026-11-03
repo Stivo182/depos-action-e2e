@@ -21,7 +21,7 @@ env:
   GH_REPO: ${{ github.repository }}
   BASE_BRANCH: e2e/base-${{ github.run_id }}-${{ github.run_attempt }}
   PR_BRANCH: depos/e2e-${{ github.run_id }}-${{ github.run_attempt }}
-  ORPHAN_BRANCH: depos/bump-deps/latest/e2e/base-${{ github.run_id }}-${{ github.run_attempt }}
+  ORPHAN_BRANCH: depos/bump-deps/base/e2e/base-${{ github.run_id }}-${{ github.run_attempt }}/latest
   KEEP_BRANCH: e2e/keep-${{ github.run_id }}-${{ github.run_attempt }}
 
 jobs:
