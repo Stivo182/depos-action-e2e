@@ -60,6 +60,12 @@ grep -F 'path: depos-action-local' "$worker" >/dev/null
 grep -F 'uses: ./depos-action-local' "$worker" >/dev/null
 # Выражение GitHub Actions проверяется как буквальный текст.
 # shellcheck disable=SC2016
+if grep -F 'token: ${{ github.token }}' "$worker" >/dev/null; then
+  echo 'E2E не проверяет токен Action по умолчанию' >&2
+  exit 1
+fi
+# Выражение GitHub Actions проверяется как буквальный текст.
+# shellcheck disable=SC2016
 if [[ "$(grep -Fc 'base: ${{ github.ref_name }}' "$worker")" -ne 3 ]]; then
   echo 'Не все запуски depos-action получили временную базовую ветку' >&2
   exit 1

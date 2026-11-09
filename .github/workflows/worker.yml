@@ -67,7 +67,6 @@ jobs:
           base: ${{ github.ref_name }}
           branch: ${{ inputs.pr_branch }}
           engine: 2.2.0
-          token: ${{ github.token }}
 
       - name: Запуск depos-action для автоматической ветки
         if: inputs.phase == 'orphan'
@@ -75,7 +74,6 @@ jobs:
         with:
           base: ${{ github.ref_name }}
           engine: 2.2.0
-          token: ${{ github.token }}
 
       - name: Проверка созданного Pull Request
         if: inputs.phase == 'create' || inputs.phase == 'orphan'
@@ -90,7 +88,6 @@ jobs:
           base: ${{ github.ref_name }}
           branch: ${{ inputs.pr_branch }}
           engine: 2.2.0
-          token: ${{ github.token }}
 
       - name: Проверка повторного использования Pull Request
         if: inputs.phase == 'create'
